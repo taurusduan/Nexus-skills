@@ -47,10 +47,15 @@
 
 ## §4 多语言混合 repo
 
-- 当前版本仅解析 **Python**（`.py` 文件）
-- 非 Python 文件直接跳过，不报错
-- 若 Python 文件数 < 3 → stderr 输出警告，仍继续，但分析质量可能偏低
-- 不适合以 JavaScript/TypeScript/Java 为主语言的仓库（见 SKILL.md「不调用场景」）
+- `extract_ast.py` 基于 `tree-sitter-language-pack`，支持 **17+ 语言**自动 dispatch（按文件扩展名）：
+  `.py` / `.js` / `.jsx` / `.ts` / `.tsx` / `.java` / `.go` / `.rs` / `.cs` / `.cpp` / `.hpp` / `.cc` / `.c` / `.kt` / `.rb` / `.swift` / `.scala` / `.php` / `.lua` / `.ex` / `.exs`
+- **未知扩展名**：静默跳过，不报错；`stats.languages` 仅记录实际解析到节点的语言
+- 若所有已知语言文件数 < 3 → stderr 输出警告，仍继续，但分析质量可能偏低
+- `ast_nodes.json` 每个 Module 节点含 `"lang"` 字段（如 `"lang": "cpp"`），方便后续按语言过滤
+
+> [!NOTE]
+> **不支持的语言** 在 `ast_nodes.json` 中表现为 `nodes: []`（空列表）。这是正常降级行为，
+> PROFILE 完成检查只要求 `ast_nodes.json` 文件非空，空节点列表视为合法。
 
 ---
 

@@ -9,7 +9,7 @@
 ### 无 git 历史的新仓库
 - 现象：`$repo_path/.git` 存在但只有 1 次提交
 - 处理：跳过 `git_detective.py`，`raw/git_stats.json` **不生成**
-- SCAN 仍然完成（只需 `ast_nodes.json` + `file_tree.txt` 非空即可通过检查）
+- PROFILE 仍然完成（只需 `ast_nodes.json` + `file_tree.txt` 非空即可通过检查）
 
 ### 非 git 仓库
 - 现象：`$repo_path/.git` 不存在
@@ -36,7 +36,7 @@
 当 `stats.truncated=true` 时：
 - `extract_ast.py` **优先保留 Module 和 Class 节点**
 - Function 节点被直接丢弃，`stats.truncated_nodes` 记录丢弃数量
-- CRYSTALLIZE 阶段仍可基于 Module/Class 节点产出完整的 `concept_model.json`
+- EMIT 阶段仍可基于 Module/Class 节点产出完整的 `concept_model.json`
 
 > [!DEVIATION]
 > **已知实现偏差**：截断的 Function 节点被**直接丢弃**，**不会生成** `raw/functions.json`。
@@ -56,16 +56,16 @@
 ## §5 特殊目录结构
 
 ### 无 README 的项目
-- HYPOTHESIS 阶段直接跳至 `pyproject.toml` / `package.json`
-- 假说日志中注明：「无 README，置信度降低，CHALLENGE 阶段需额外质疑入口点」
+- REASON 阶段直接跳至 `pyproject.toml` / `package.json`
+- 假说日志中注明：「无 README，置信度降低，OBJECT 阶段需额外质疑入口点」
 
 ### 目录过深嵌套
 - Python 文件超过 8 层嵌套：AST 解析正常工作，不受目录层级影响
-- `file_tree.txt` 行数 > 500 时：HYPOTHESIS 阶段仅读取前 300 行感知结构
+- `file_tree.txt` 行数 > 500 时：REASON 阶段仅读取前 300 行感知结构
 
 ---
 
-## §6 CRYSTALLIZE 幂等性保障
+## §6 EMIT 幂等性保障
 
 - 多次执行会触发覆盖确认，不会静默覆盖已有分析
 - 写入路径：先写 `.nexus-map/.tmp/`，全部成功后整体移动 → 避免中途失败留半成品

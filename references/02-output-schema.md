@@ -1,6 +1,6 @@
 # 输出 Schema 规范
 
-> L1 技术层 — CRYSTALLIZE 阶段前按需加载
+> L1 技术层 — EMIT 阶段前按需加载
 > 本文 Schema 均基于实际运行输出校正，与脚本当前版本保持一致。
 
 ---
@@ -82,7 +82,7 @@
 
 ---
 
-## concepts/concept_model.json — Schema V1（CRYSTALLIZE 产出）
+## concepts/concept_model.json — Schema V1（EMIT 产出）
 
 ```json
 {

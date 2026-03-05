@@ -1,10 +1,10 @@
-# SKIP 协议 — 各阶段详细步骤
+# PROBE 协议 — 各阶段详细步骤
 
 > L1 技术层 — 在执行对应阶段时按需加载
 
 ---
 
-## S — SCAN 阶段
+## P — PROFILE 阶段
 
 **前置验证**
 1. 确认 `$repo_path` 目录存在
@@ -29,14 +29,14 @@ python $SKILL_DIR/scripts/git_detective.py $repo_path --days 90 \
 > `$SKILL_DIR` 为本 Skill 的安装路径（`.agent/skills/nexus-mapper` 或独立 repo 路径）。
 > `$repo_path` 为目标仓库的绝对路径。
 
-**完成检查（任一失败 → 停止，不进入 HYPOTHESIS）**
+**完成检查（任一失败 → 停止，不进入 REASON）**
 - [ ] `raw/ast_nodes.json` 非空，包含 `nodes` 字段
 - [ ] `raw/git_stats.json` 非空，包含 `hotspots` 字段
 - [ ] `raw/file_tree.txt` 非空
 
 ---
 
-## H — HYPOTHESIS 阶段
+## R — REASON 阶段
 
 **阅读策略（优先级从高到低）**
 1. `README.md` / `README.rst` — 项目总体描述
@@ -46,20 +46,20 @@ python $SKILL_DIR/scripts/git_detective.py $repo_path --days 90 \
 5. `raw/git_stats.json` hotspots Top 5 — 最活跃文件
 
 **执行要求**
-- 使用 `sequentialthinking` 思考 3-5 步
+- 进行深度思考，逐步推演 3-5 个决策点
 - 识别 **≥3 个 System 级节点**，每个有初步的 `code_path` 假设和置信度标注
 
 **记录格式**（工作记忆，不写文件）
 ```
-[HYPOTHESIS LOG]
+[REASON LOG]
 - System A: 推断职责=X, code_path=Y （置信度: 高/中/低）
 - System B: 推断职责=X, code_path=Y （置信度: 高/中/低）
-- 疑问: Z 目录归属不确定（将在 CHALLENGE 中质疑）
+- 疑问: Z 目录归属不确定（将在 OBJECT 中质疑）
 ```
 
 ---
 
-## C — CHALLENGE 阶段
+## O — OBJECT 阶段
 
 **质疑协议 — 必须提出 ≥3 个质疑点，每个附代码引证**
 
@@ -67,8 +67,10 @@ python $SKILL_DIR/scripts/git_detective.py $repo_path --days 90 \
 ```
 Q{N}: [具体的矛盾或可疑之处]
 证据线索: [在哪里发现的矛盾 — 文件路径/行号/git 数据]
-验证计划: [EVIDENCE 阶段如何验证]
+验证计划: [BENCHMARK 阶段如何验证]
 ```
+
+> 单独加载 OBJECT 阶段三维度质疑框架 → [`04-object-framework.md`](./04-object-framework.md)
 
 **质量判定**
 
@@ -78,12 +80,12 @@ Q1: 也许我对系统结构理解得不够深入
 Q2: 需要进一步确认 xxx 目录的职责
 Q3: 不确定 yyy 是否真的是入口
 ```
-▲ 上述质疑使用了禁止词，且没有代码引证，无法在 EVIDENCE 阶段验证。
+▲ 上述质疑使用了禁止词，且没有代码引证，无法在 BENCHMARK 阶段验证。
 
 ✅ **合格示例**：
 ```
 Q1: git_stats 显示 tasks/analysis_tasks.py 变更 21 次（high risk），
-    但 HYPOTHESIS 认为编排入口是 evolution/detective_loop.py。
+    但 REASON 认为编排入口是 evolution/detective_loop.py。
     矛盾：若 detective_loop 是入口，analysis_tasks 为何热度更高？
     证据线索: raw/git_stats.json hotspots[0]
     验证计划: view tasks/analysis_tasks.py 的 class 定义 + import 树，
@@ -98,24 +100,24 @@ Q2: application/weaving/ 目录命名暗示「语义织入」，但其下
 
 ---
 
-## E — EVIDENCE 阶段
+## B — BENCHMARK 阶段
 
 **对每个质疑点执行验证**
 1. 用 `grep_search` / `view_file` 查找具体证据
 2. 判断结果：
    - 质疑成立 → 修正节点的 `code_path` 或 `responsibility`，在 LOG 中标记「修正」
-   - 质疑不成立 → 确认原假说，标记「验证通过」
+   - 质疑不成立 → 确认原假设，标记「验证通过」
 
 **全局节点校验（全部 System 节点逐一执行）**
 - [ ] 每个节点 `code_path` 在 repo 中实际存在（`ls` 或 `view_file` 确认）
 - [ ] `responsibility` 无禁止词，表意清晰，10-100 字
 - [ ] 节点 `id` 全局唯一，kebab-case，全部小写
 
-> 发现关键系统完全识别错误 → 允许返回 HYPOTHESIS 重建模型，并重新执行 CHALLENGE。
+> 发现关键系统完全识别错误 → 允许返回 REASON 重建模型，并重新执行 OBJECT。
 
 ---
 
-## C — CRYSTALLIZE 阶段
+## E — EMIT 阶段
 
 **幂等性检查（写入前必做）**
 
@@ -139,7 +141,7 @@ Q2: application/weaving/ 目录命名暗示「语义织入」，但其下
 
 **edges 合并协议（写入 concept_model.json 前执行）**
 1. 导入 `raw/ast_nodes.json` 中的 edges（`imports`/`contains`，机器层精确）
-2. 追加 EVIDENCE 阶段推断的语义边（`depends_on`/`calls`）
+2. 追加 BENCHMARK 阶段推断的语义边（`depends_on`/`calls`）
 3. 去重：`(source, target, type)` 三元组相同的边保留一条
 
 **完成自检**

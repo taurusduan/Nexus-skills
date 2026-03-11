@@ -47,7 +47,7 @@ nexus-mapper 是一个给 AI Agent 用的仓库建图 skill。它分析本地代
 └── raw/                  ← 原始数据：AST 节点、git 统计、过滤后的文件树。
 ```
 
-`INDEX.md` 是唯一的冷启动入口，刻意保持很小。AI 可以一次性完整读入，先恢复全局，再按需下钻。
+`INDEX.md` 是冷启动入口和路由器。读完它之后，在执行任何任务前，必须读完它路由块列出的所有伴随文件——这些文件刻意保持短小，总量通常不超过 5000 tokens。
 
 ---
 
@@ -145,11 +145,11 @@ AI 跑完整个协议后，会在仓库根目录写入 `.nexus-map/`。下次打
 为了让这种行为在长期更稳定，建议把一小段持久规则写进 `AGENTS.md`、`CLAUDE.md` 或类似文件：
 
 ```md
-如果仓库中存在 .nexus-map/INDEX.md，开始任务前必须先阅读它恢复全局上下文。
+如果仓库中存在 .nexus-map/INDEX.md，先阅读它，然后在执行任务前读完其路由块中列出的所有文件。
 
-如果任务需要判断局部结构、依赖关系、影响半径或边界归属，使用 query_graph.py 基于 .nexus-map/raw/ast_nodes.json 做验证；不要重新猜结构。
+如果 .nexus-map/ 不存在，且当前任务涉及跨模块修改或接口变更，先向用户提议运行 nexus-mapper；若用户需立即开始，至少先运行 query_graph.py --summary 建立结构感知。
 
-当一次任务改变了项目的结构认知时，应在交付前评估是否同步更新 .nexus-map。
+当任务改变了项目的结构认知（系统边界、入口、依赖关系），在交付前评估是否需要更新 .nexus-map。
 ```
 
 ---
@@ -179,7 +179,6 @@ nexus-skills/
 ├── README.md
 ├── README.zh-CN.md
 ├── Icon.png
-├── evals/
 └── skills/
     ├── nexus-mapper/
     │   ├── SKILL.md              ← 执行协议与守则
@@ -190,12 +189,9 @@ nexus-skills/
     │   │   ├── languages.json    ← 语言配置
     │   │   └── requirements.txt
     │   └── references/
-    │       ├── 01-probe-protocol.md
-    │       ├── 02-output-schema.md
-    │       ├── 03-edge-cases.md
-    │       ├── 04-object-framework.md
-    │       ├── 05-language-customization.md
-    │       └── 06-query-guide.md
+    │       ├── 01-probe-protocol.md     ← 完整 PROBE 执行蓝图
+    │       ├── 02-output-schema.md      ← JSON/Markdown 输出格式规范
+    │       └── 05-language-customization.md  ← 扩展语言支持
     └── nexus-query/
         ├── SKILL.md              ← 查询模式与使用场景
         └── scripts/

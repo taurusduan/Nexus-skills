@@ -25,7 +25,7 @@ description: "Generate a persistent .nexus-map/ knowledge base that lets any AI 
 
 ## 前提检查
 
-缺失项要显式告知用户；可降级时优先降级而不是中止。
+缺失项要显式告知用户；需要降级等时及时提醒用户，经过同意才能继续。
 
 | 前提              | 检查方式                                |
 | ----------------- | --------------------------------------- |
@@ -90,10 +90,9 @@ repo_path: 目标仓库的本地绝对路径（必填）
 > 各阶段详细步骤、完成检查清单与边界场景处理均在 reference 中定义。
 
 ```
-[Skill 激活时]     → read references/01-probe-protocol.md  （阶段步骤蓝图）
-[REASON 前]        → read references/03-edge-cases.md       （边界场景检查）
-[OBJECT 前]        → read references/04-object-framework.md （三维度质疑模板）
+[Skill 激活时]     → read references/01-probe-protocol.md  （阶段步骤蓝图，含边界场景与三维度质疑框架）
 [EMIT 前]          → read references/02-output-schema.md    （Schema 校验规范）
+[非标准语言时]     → read references/05-language-customization.md（按需，非门控）
 ```
 
 ---
@@ -293,4 +292,4 @@ python $SKILL_DIR/scripts/query_graph.py <ast_nodes.json> --summary             
 | OBJECT | `--impact --git-stats` | 验证边界假设，查看真实上下游依赖             |
 | EMIT   | `--summary`, `--file`  | 生成 systems.md / dependencies.md 的数据支撑 |
 
-五个查询模式的详细说明见 `references/06-query-guide.md`。
+各查询模式的核心价值：`--hub-analysis` 用于 REASON 期验证架构假说；`--impact --git-stats` 用于 OBJECT 期量化边界风险；`--summary` 与 `--file` 用于 EMIT 期生成精确数据支撑。

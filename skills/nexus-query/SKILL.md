@@ -5,23 +5,6 @@ description: "Precise, instant code structure queries for active development —
 
 # nexus-query — 代码结构精准查询
 
-本 Skill 将 `extract_ast.py`、`git_detective.py`、`query_graph.py` 三个脚本封装成**开发辅助工具**：按需生成数据、精确回答问题，无需运行完整的 PROBE 五阶段。
-
----
-
-## 与 nexus-mapper 的边界
-
-| 维度 | nexus-mapper | nexus-query |
-|------|-------------|-------------|
-| 目的 | 为 AI 建立项目持久记忆（`.nexus-map/`） | 为当前问题给出精确数字答案 |
-| 时机 | 项目初期，一次性全量探测 | 开发中，随时按需调用 |
-| 输出 | 结构化知识库文档 | 精准文本答案（秒级结果） |
-| 前提 | 需要运行完整 PROBE 五阶段 | 仅需 ast_nodes.json 存在即可 |
-| 典型问题 | "帮我理解这个项目的整体架构" | "改这个接口哪些文件会炸" |
-
-**nexus-query 是 nexus-mapper 的轻量伴侣**：如果 `.nexus-map/` 已存在，直接复用原始数据；如果不存在，先运行 `extract_ast.py` 生成 `ast_nodes.json`（几秒），再开始查询。
-
----
 
 ## 何时调用
 

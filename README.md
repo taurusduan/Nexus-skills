@@ -47,7 +47,7 @@ This is not a generic "summarize the repo" prompt. The skill runs a gated PROBE 
 └── raw/                  ← Source data: AST nodes, git statistics, filtered file tree.
 ```
 
-`INDEX.md` is the entry point. It stays small on purpose so an AI can load it in full, recover global context quickly, and then drill into deeper files only when needed.
+`INDEX.md` is the entry point and routing hub. After reading it, load all five companion files before taking action — they are intentionally kept short (typically under 5000 tokens combined).
 
 ---
 
@@ -145,11 +145,11 @@ Read .nexus-map/INDEX.md
 For the best long-term behavior, add a short persistent instruction to your host tool's memory file such as `AGENTS.md` or `CLAUDE.md`:
 
 ```md
-If .nexus-map/INDEX.md exists, read it before starting work to restore global project context.
+If .nexus-map/INDEX.md exists, read it first, then read all files listed in its routing block before taking action.
 
-If a task requires local structure, dependency, impact radius, or boundary validation, use query_graph.py against .nexus-map/raw/ast_nodes.json instead of guessing.
+If .nexus-map/ does not exist and the task involves cross-module changes or interface modifications, propose running nexus-mapper first. If the user wants to proceed immediately, at minimum run query_graph.py --summary to establish structural awareness.
 
-When a task changes the project's structural understanding, assess whether .nexus-map should be updated before delivery.
+When a task changes the structural understanding of the project (system boundaries, entrypoints, dependency relationships), assess whether .nexus-map needs to be updated before delivery.
 ```
 
 ---
@@ -179,7 +179,6 @@ nexus-skills/
 ├── README.md
 ├── README.zh-CN.md
 ├── Icon.png
-├── evals/
 └── skills/
     ├── nexus-mapper/
     │   ├── SKILL.md              ← Protocol, guardrails, output schema
@@ -190,12 +189,9 @@ nexus-skills/
     │   │   ├── languages.json    ← Language config
     │   │   └── requirements.txt
     │   └── references/
-    │       ├── 01-probe-protocol.md
-    │       ├── 02-output-schema.md
-    │       ├── 03-edge-cases.md
-    │       ├── 04-object-framework.md
-    │       ├── 05-language-customization.md
-    │       └── 06-query-guide.md
+    │       ├── 01-probe-protocol.md     ← Full PROBE execution blueprint
+    │       ├── 02-output-schema.md      ← JSON/Markdown schema specs
+    │       └── 05-language-customization.md  ← Extending language support
     └── nexus-query/
         ├── SKILL.md              ← Query modes, guardrails, use cases
         └── scripts/

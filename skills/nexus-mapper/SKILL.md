@@ -90,9 +90,9 @@ repo_path: 目标仓库的本地绝对路径（必填）
 > 各阶段详细步骤、完成检查清单与边界场景处理均在 reference 中定义。
 
 ```
-[Skill 激活时]     → read references/01-probe-protocol.md  （阶段步骤蓝图，含边界场景与三维度质疑框架）
-[EMIT 前]          → read references/02-output-schema.md    （Schema 校验规范）
-[非标准语言时]     → read references/05-language-customization.md（按需，非门控）
+[Skill 激活时]     → read references/probe-protocol.md  （阶段步骤蓝图，含边界场景与三维度质疑框架）
+[EMIT 前]          → read references/output-schema.md    （Schema 校验规范）
+[非标准语言时]     → read references/language-customization.md（按需，非门控）
 ```
 
 ---
@@ -275,10 +275,11 @@ pip install -r $SKILL_DIR/scripts/requirements.txt
 建议把以下规则写入仓库的 `AGENTS.md`、`CLAUDE.md` 或同类持久记忆文件，使知识库在长期对话中保持活跃：
 
 ```md
-.nexus-map/ 存在时：开始任务前必须先读 INDEX.md 恢复上下文，并按其中的路由块决定下一步动作。
-.nexus-map/ 不存在时：跨模块/接口修改前，先向用户提议运行 nexus-mapper；若用户需立即开始，至少先运行 query_graph.py --summary 建立结构感知，不要对陌生仓库盲改核心接口。
-结构查询：任何时候需要判断依赖关系、影响半径或边界归属，优先用 query_graph.py 验证，不要凭目录名猜测。
-知识库同步：任务中若改变了系统边界、入口或依赖关系，完成后评估是否需要重新运行 nexus-mapper 更新 .nexus-map。
+如果仓库中存在 .nexus-map/INDEX.md，先阅读它，然后在执行任务前读完其路由块中列出的所有文件。
+
+如果 .nexus-map/ 不存在，且当前任务涉及跨模块修改或接口变更，先向用户提议运行 nexus-mapper；若用户需立即开始，至少先运行 query_graph.py --summary 建立结构感知。
+
+当任务改变了项目的结构认知（系统边界、入口、依赖关系），在交付前评估是否需要更新 .nexus-map。
 ```
 
 ---

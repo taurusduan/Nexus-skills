@@ -1,8 +1,8 @@
 # PROBE 协议 — 各阶段详细步骤
 
 > 本文件是 SKILL.md 的执行蓝图，Skill 激活后**第一步**即读取本文件，一次性完整读取。
-> EMIT 前还需读 `references/02-output-schema.md`（Schema 太具体，单独放以节约激活时的 context）。
-> 非标准语言支持见 `references/05-language-customization.md`（按需，非门控）。
+> EMIT 前还需读 `references/output-schema.md`（Schema 太具体，单独放以节约激活时的 context）。
+> 非标准语言支持见 `references/language-customization.md`（按需，非门控）。
 
 ---
 
@@ -29,7 +29,7 @@ python $SKILL_DIR/scripts/extract_ast.py $repo_path [--max-nodes 500] \
   --file-tree-out .nexus-map/raw/file_tree.txt \
   > $repo_path/.nexus-map/raw/ast_nodes.json
 
-# 或使用显式 JSON 配置文件（配置较复杂时，详见 references/05-language-customization.md）
+# 或使用显式 JSON 配置文件（配置较复杂时，详见 references/language-customization.md）
 python $SKILL_DIR/scripts/extract_ast.py $repo_path [--max-nodes 500] \
   --language-config /custom/path/to/language-config.json \
   --file-tree-out .nexus-map/raw/file_tree.txt \
@@ -193,7 +193,7 @@ Q1: git_stats 显示 tasks/analysis_tasks.py 变更 21 次（high risk），
 
 > [!IMPORTANT]
 > **阶段门控**：写入任何文件之前，必须先读：
-> `references/02-output-schema.md`
+> `references/output-schema.md`
 > 未读取该文件即写入 → 产出的 JSON/Markdown 结构无法通过 Schema 校验，视为无效。
 
 **幂等性检查（写入前必做）**

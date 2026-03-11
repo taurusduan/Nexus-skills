@@ -145,11 +145,10 @@ Read .nexus-map/INDEX.md
 For the best long-term behavior, add a short persistent instruction to your host tool's memory file such as `AGENTS.md` or `CLAUDE.md`:
 
 ```md
-If .nexus-map/INDEX.md exists, read it first, then read all files listed in its routing block before taking action.
-
-If .nexus-map/ does not exist and the task involves cross-module changes or interface modifications, propose running nexus-mapper first. If the user wants to proceed immediately, at minimum run query_graph.py --summary to establish structural awareness.
-
-When a task changes the structural understanding of the project (system boundaries, entrypoints, dependency relationships), assess whether .nexus-map needs to be updated before delivery.
+.nexus-map/ exists: read INDEX.md to restore context, and follow its routing block for next steps.
+.nexus-map/ missing: propose running nexus-mapper before making cross-module or interface changes. If proceeding immediately, run query_graph.py --summary first.
+Structural queries: always use query_graph.py to validate dependencies, radius, or boundaries. Never guess from directory names.
+Syncing: if a task changes system boundaries, entrypoints, or dependencies, evaluate updating .nexus-map before delivery.
 ```
 
 ---
@@ -189,9 +188,9 @@ nexus-skills/
     │   │   ├── languages.json    ← Language config
     │   │   └── requirements.txt
     │   └── references/
-    │       ├── 01-probe-protocol.md     ← Full PROBE execution blueprint
-    │       ├── 02-output-schema.md      ← JSON/Markdown schema specs
-    │       └── 05-language-customization.md  ← Extending language support
+    │       ├── probe-protocol.md     ← Full PROBE execution blueprint
+    │       ├── output-schema.md      ← JSON/Markdown schema specs
+    │       └── language-customization.md  ← Extending language support
     └── nexus-query/
         ├── SKILL.md              ← Query modes, guardrails, use cases
         └── scripts/

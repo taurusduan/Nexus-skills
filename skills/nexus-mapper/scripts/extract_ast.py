@@ -4,7 +4,7 @@ extract_ast.py — 多语言代码仓库 AST 结构提取器
 
 用途：基于 Tree-sitter 提取代码仓库的模块/类/函数结构，输出 JSON 到 stdout
 支持：Python, JavaScript, TypeScript, TSX, Java, Go, Rust, C#, C/C++, Kotlin, Ruby, Swift, PHP, Lua ...
-用法：python extract_ast.py <repo_path> [--max-nodes 500]
+用法：python extract_ast.py <repo_path> [--max-nodes 500] [--exclude-dirs <dir1,dir2,...>] [--use-gitignore]
 """
 
 import sys
@@ -14,11 +14,11 @@ from pathlib import Path
 from typing import Any, Optional, cast
 
 
-EXCLUDE_DIRS = {'.git', '__pycache__', '.venv', 'venv', 'node_modules',
-                'dist', 'build', '.mypy_cache', '.pytest_cache', 'site-packages',
-                '.nexus-map', '.tox', '.eggs', 'target', 'cmake-build-debug',
-                '.vs', 'out', '_build', 'vendor', '.ruff_cache', '.godot',
-                '.idea', '.vscode', '.nox'}
+DEFAULT_EXCLUDE_DIRS = {'.git', '__pycache__', '.venv', 'venv', 'node_modules',
+                        'dist', 'build', '.mypy_cache', '.pytest_cache', 'site-packages',
+                        '.nexus-map', '.tox', '.eggs', 'target', 'cmake-build-debug',
+                        '.vs', 'out', '_build', 'vendor', '.ruff_cache', '.godot',
+                        '.idea', '.vscode', '.nox'}
 
 EXCLUDE_FILE_SUFFIXES = ('.import', '.vulkan.cache')
 
@@ -54,19 +54,128 @@ BUILTIN_EXTENSION_MAP, BUILTIN_LANG_QUERIES, BUILTIN_KNOWN_UNSUPPORTED_EXTENSION
 )
 
 
-def _should_skip_path(repo_path: Path, path: Path) -> bool:
-    rel_path = path.relative_to(repo_path)
-    if any(part in EXCLUDE_DIRS for part in rel_path.parts):
-        return True
-    if path.is_file() and any(path.name.endswith(suffix) for suffix in EXCLUDE_FILE_SUFFIXES):
-        return True
-    return False
+def _normalize_exclude_dir(raw_value: str) -> str:
+    normalized = raw_value.strip().replace('\\', '/').strip('/')
+    if not normalized or normalized == '.':
+        raise ValueError('exclude dir must not be empty')
+    return normalized
 
 
-def write_filtered_file_tree(repo_path: Path, output_path: Path) -> None:
+def _parse_exclude_dirs(cli_values: list[str] | None) -> tuple[set[str], set[str], list[str], list[str]]:
+    exclude_dir_names = set(DEFAULT_EXCLUDE_DIRS)
+    exclude_dir_paths: set[str] = set()
+    warnings: list[str] = []
+    custom_excludes: list[str] = []
+    seen_custom_excludes: set[str] = set()
+
+    if not cli_values:
+        return exclude_dir_names, exclude_dir_paths, warnings, custom_excludes
+
+    for raw_value in cli_values:
+        for item in raw_value.split(','):
+            candidate = item.strip()
+            if not candidate:
+                continue
+            try:
+                normalized = _normalize_exclude_dir(candidate)
+            except ValueError as exc:
+                warnings.append(f'ignored invalid exclude dir {candidate!r}: {exc}')
+                continue
+
+            if '/' in normalized:
+                exclude_dir_paths.add(normalized)
+            else:
+                exclude_dir_names.add(normalized)
+
+            if normalized not in seen_custom_excludes:
+                custom_excludes.append(normalized)
+                seen_custom_excludes.add(normalized)
+
+    return exclude_dir_names, exclude_dir_paths, warnings, custom_excludes
+
+
+def _load_gitignore_spec(repo_path: Path, enabled: bool) -> tuple[Any | None, list[str], bool]:
+    warnings: list[str] = []
+    if not enabled:
+        return None, warnings, False
+
+    gitignore_path = repo_path / '.gitignore'
+    if not gitignore_path.is_file():
+        return None, warnings, False
+
+    try:
+        from pathspec import PathSpec
+    except ImportError:
+        warnings.append('gitignore support requested but pathspec is not installed; skipping .gitignore rules')
+        return None, warnings, False
+
+    try:
+        lines = gitignore_path.read_text(encoding='utf-8').splitlines()
+        return PathSpec.from_lines('gitwildmatch', lines), warnings, True
+    except OSError as exc:
+        warnings.append(f'failed to read .gitignore: {exc}')
+    except Exception as exc:
+        warnings.append(f'failed to parse .gitignore: {exc}')
+    return None, warnings, False
+
+
+class ScanFilter:
+    def __init__(
+        self,
+        repo_path: Path,
+        exclude_dir_names: set[str],
+        exclude_dir_paths: set[str],
+        gitignore_spec: Any | None,
+    ) -> None:
+        self.repo_path = repo_path
+        self.exclude_dir_names = exclude_dir_names
+        self.exclude_dir_paths = exclude_dir_paths
+        self.gitignore_spec = gitignore_spec
+
+    def should_skip_path(self, path: Path) -> bool:
+        rel_path = path.relative_to(self.repo_path)
+        rel_posix = rel_path.as_posix()
+
+        if any(part in self.exclude_dir_names for part in rel_path.parts):
+            return True
+
+        if any(
+            rel_posix == excluded_path or rel_posix.startswith(f'{excluded_path}/')
+            for excluded_path in self.exclude_dir_paths
+        ):
+            return True
+
+        if path.is_file() and any(path.name.endswith(suffix) for suffix in EXCLUDE_FILE_SUFFIXES):
+            return True
+
+        if self.gitignore_spec is not None:
+            spec_target = rel_posix + ('/' if path.is_dir() else '')
+            if self.gitignore_spec.match_file(spec_target):
+                return True
+
+        return False
+
+
+def build_scan_filter(
+    repo_path: Path,
+    cli_exclude_dirs: list[str] | None,
+    use_gitignore: bool,
+) -> tuple[ScanFilter, list[str], list[str], bool]:
+    exclude_dir_names, exclude_dir_paths, warnings, custom_excludes = _parse_exclude_dirs(cli_exclude_dirs)
+    gitignore_spec, gitignore_warnings, gitignore_loaded = _load_gitignore_spec(repo_path, use_gitignore)
+    warnings.extend(gitignore_warnings)
+    return (
+        ScanFilter(repo_path, exclude_dir_names, exclude_dir_paths, gitignore_spec),
+        warnings,
+        custom_excludes,
+        gitignore_loaded,
+    )
+
+
+def write_filtered_file_tree(repo_path: Path, output_path: Path, scan_filter: ScanFilter) -> None:
     lines: list[str] = []
     for path in sorted(repo_path.rglob('*')):
-        if _should_skip_path(repo_path, path):
+        if scan_filter.should_skip_path(path):
             continue
         rel_path = path.relative_to(repo_path).as_posix()
         suffix = '/' if path.is_dir() else ''
@@ -440,6 +549,7 @@ def extract_file(
 
 def collect_source_files(
     repo_path: Path,
+    scan_filter: ScanFilter,
     languages: dict[str, Any],
     extension_map: dict[str, str],
     known_unsupported_extensions: dict[str, str],
@@ -460,7 +570,7 @@ def collect_source_files(
     for p in repo_path.rglob('*'):
         if not p.is_file():
             continue
-        if _should_skip_path(repo_path, p):
+        if scan_filter.should_skip_path(p):
             continue
 
         suffix = p.suffix.lower()
@@ -552,6 +662,26 @@ def main() -> None:
         '--file-tree-out',
         help='Optional output path for a filtered file tree (e.g. .nexus-map/raw/file_tree.txt). Uses the same exclude rules as AST collection.',
     )
+    parser.add_argument(
+        '--exclude-dirs',
+        action='append',
+        metavar='DIR[,DIR...]',
+        help='Exclude directories by name or repo-relative path. Can be used multiple times and also accepts comma-separated values.',
+    )
+    gitignore_group = parser.add_mutually_exclusive_group()
+    gitignore_group.add_argument(
+        '--use-gitignore',
+        dest='use_gitignore',
+        action='store_true',
+        help='Apply ignore rules from <repo_path>/.gitignore during file discovery. Enabled by default.',
+    )
+    gitignore_group.add_argument(
+        '--no-gitignore',
+        dest='use_gitignore',
+        action='store_false',
+        help='Disable reading <repo_path>/.gitignore during file discovery.',
+    )
+    parser.set_defaults(use_gitignore=True)
     args = parser.parse_args()
 
     repo_path = Path(args.repo_path).resolve()
@@ -561,11 +691,17 @@ def main() -> None:
     if not (repo_path / '.git').exists():
         sys.stderr.write(f"[WARNING] .git not found in {repo_path}, may not be a git repo\n")
 
+    scan_filter, scan_warnings, custom_excludes, gitignore_loaded = build_scan_filter(
+        repo_path,
+        args.exclude_dirs,
+        args.use_gitignore,
+    )
+
     if args.file_tree_out:
         file_tree_path = Path(args.file_tree_out)
         if not file_tree_path.is_absolute():
             file_tree_path = repo_path / file_tree_path
-        write_filtered_file_tree(repo_path, file_tree_path.resolve())
+        write_filtered_file_tree(repo_path, file_tree_path.resolve(), scan_filter)
 
     # 处理 CLI 自定义参数
     cli_ext_override, cli_query_override, cli_warnings, cli_custom_query_languages = _apply_cli_customizations(
@@ -598,6 +734,7 @@ def main() -> None:
         configured_but_unavailable_file_counts,
     ) = collect_source_files(
         repo_path,
+        scan_filter,
         languages,
         extension_map,
         known_unsupported_extensions,
@@ -611,12 +748,19 @@ def main() -> None:
     all_errors: list[str] = []
     detected_langs: set[str] = set()
     total_lines = 0
-    warnings: list[str] = list(config_warnings)
+    warnings: list[str] = list(scan_warnings) + list(config_warnings)
     module_only_file_counts: dict[str, int] = {}
     languages_with_structural_queries = sorted(
         lang for lang, query_parts in lang_queries.items()
         if query_parts.get('struct', '').strip()
     )
+
+    if custom_excludes:
+        warnings.append(f'custom exclude dirs applied: {", ".join(custom_excludes)}')
+    if gitignore_loaded:
+        warnings.append('gitignore rules applied from: .gitignore')
+    elif not args.use_gitignore:
+        warnings.append('gitignore rules disabled by CLI')
 
     for file_path, lang_name in source_files:
         nodes, edges, errors = extract_file(

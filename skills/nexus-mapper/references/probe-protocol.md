@@ -22,6 +22,18 @@ python $SKILL_DIR/scripts/extract_ast.py $repo_path [--max-nodes 500] \
   --file-tree-out .nexus-map/raw/file_tree.txt \
   > $repo_path/.nexus-map/raw/ast_nodes.json
 
+# 如仓库含有三方静态资源、生成物或杂物目录，可显式追加排除项
+python $SKILL_DIR/scripts/extract_ast.py $repo_path [--max-nodes 500] \
+  --exclude-dirs django_static,.go_root,third_party/assets \
+  --file-tree-out .nexus-map/raw/file_tree.txt \
+  > $repo_path/.nexus-map/raw/ast_nodes.json
+
+# 如不希望应用 .gitignore，仅保留内置排除项与自定义排除项
+python $SKILL_DIR/scripts/extract_ast.py $repo_path [--max-nodes 500] \
+  --no-gitignore \
+  --file-tree-out .nexus-map/raw/file_tree.txt \
+  > $repo_path/.nexus-map/raw/ast_nodes.json
+
 # 若仓库包含内置未覆盖的语言，通过命令行参数补充支持
 python $SKILL_DIR/scripts/extract_ast.py $repo_path [--max-nodes 500] \
   --add-extension .templ=templ \
@@ -42,7 +54,7 @@ python $SKILL_DIR/scripts/git_detective.py $repo_path --days 90 \
 
 > `$SKILL_DIR` 为本 Skill 的安装路径（`.agent/skills/nexus-mapper` 或独立 repo 路径）。
 > `$repo_path` 为目标仓库的绝对路径。
-> `extract_ast.py --file-tree-out` 默认排除 `.git/`、`.nexus-map/`、`node_modules/`、`__pycache__/`、`.venv/`、`dist/`、`build/` 等噪音目录及文件。
+> `extract_ast.py --file-tree-out` 默认排除 `.git/`、`.nexus-map/`、`node_modules/`、`__pycache__/`、`.venv/`、`dist/`、`build/` 等噪音目录及文件；默认还会读取 `<repo_path>/.gitignore`，忽略其中声明的文件和目录。`--no-gitignore` 仅关闭 `.gitignore` 规则，不会关闭内置排除项，也不会关闭 `--exclude-dirs`。
 
 **完成检查（任一失败 → 停止，不进入 REASON）**
 - [ ] `raw/ast_nodes.json` 已写入（`nodes` 为空列表也属正常降级）

@@ -32,6 +32,12 @@ nexus-mapper is a repository-mapping skill for AI agents. It analyzes a local co
 
 This is not a generic "summarize the repo" prompt. The skill runs a gated PROBE workflow, challenges its own first-pass assumptions, and only then writes final assets. That design matters: it reduces the usual AI failure mode of turning first impressions into fake certainty.
 
+When the repository contains noisy folders such as third-party static assets, generated trees, or language toolchains, the shared `extract_ast.py` scanner supports explicit filtering:
+
+- `--exclude-dirs django_static,.go_root,third_party/assets` excludes directory names or repo-relative paths
+- `--use-gitignore` applies `<repo_path>/.gitignore` rules and ignores the files and directories declared there
+- `--no-gitignore` disables only `.gitignore` rules; built-in noise exclusions and `--exclude-dirs` still apply
+
 ```
 .nexus-map/
 ├── INDEX.md              ← Load this first. Full architectural context, under 2000 tokens.

@@ -4,3 +4,4 @@
 
 tree-sitter>=0.22.0
 tree-sitter-language-pack
+pathspec>=0.12.1

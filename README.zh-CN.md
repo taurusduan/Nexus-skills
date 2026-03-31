@@ -32,6 +32,12 @@ nexus-mapper 是一个给 AI Agent 用的仓库建图 skill。它分析本地代
 
 它不是一个泛泛的"总结仓库"提示词。这个 skill 会按 PROBE 协议分阶段执行，先产出证据，再挑战初始判断，最后才写正式资产。它解决的是 AI 最常见的一个问题：把第一眼印象误写成结论。
 
+当仓库里包含三方静态资源、生成目录或语言工具链目录这类噪音时，共用的 `extract_ast.py` 扫描器支持显式过滤：
+
+- `--exclude-dirs django_static,.go_root,third_party/assets` 按目录名或仓库相对路径排除目录
+- `--use-gitignore` 应用 `<repo_path>/.gitignore` 规则，忽略其中声明的文件和目录
+- `--no-gitignore` 仅关闭 `.gitignore` 规则；内置噪音排除项和 `--exclude-dirs` 仍然生效
+
 ```
 .nexus-map/
 ├── INDEX.md              ← 冷启动入口。完整架构上下文，控制在 2000 tokens 以内。
@@ -54,6 +60,18 @@ nexus-mapper 是一个给 AI Agent 用的仓库建图 skill。它分析本地代
 ## nexus-query
 
 nexus-query 在开发过程中回答精准的结构问题——不用读完整个仓库，也不用重跑整个 PROBE 流程。
+
+如果还没有 `ast_nodes.json`，可以先用与 nexus-mapper 相同的过滤控制生成：
+
+```bash
+python skills/nexus-query/scripts/extract_ast.py <repo_path> \
+  --exclude-dirs django_static,.go_root,third_party/assets \
+  > <repo_path>/.nexus-map/raw/ast_nodes.json
+
+python skills/nexus-query/scripts/extract_ast.py <repo_path> \
+  --no-gitignore \
+  > <repo_path>/.nexus-map/raw/ast_nodes.json
+```
 
 ```bash
 # 文件骨架：类、方法、行号、import 清单
